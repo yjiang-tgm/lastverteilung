@@ -5,7 +5,7 @@ services:
     # The official v2 Traefik docker image
     image: traefik:v2.2
     # Enables the web UI and tells Traefik to listen to docker
-    command: --api.insecure=true --providers.docker
+    command: --api.insecure=true --providers.docker --providers.docker.swarmMode=true
     ports:
       # The HTTP port
       - "80:80"
@@ -14,14 +14,19 @@ services:
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
-  db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: example
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
 
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8081:8080
+  whoami:
+    # A container that exposes an API to show its IP address
+    image: containous/whoami
+    deploy:
+      labels:
+        - traefik.http.routers.whoami.rule=Host(`192.168.0.231`)
+        - traefik.http.services.my-container-service.loadbalancer.server.port=80
+      replicas: 2
+      placement:
+        constraints:
+          - node.role == worker
