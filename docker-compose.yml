@@ -28,6 +28,7 @@ services:
       labels:
         - traefik.http.routers.kanboard-router.rule=Host(`192.168.0.231`)
         - traefik.http.services.kanboard-service.loadbalancer.server.port=80
+        - traefik.http.services.kanboard-service.loadbalancer.sticky.cookie=true
       replicas: 2
 
 volumes:
