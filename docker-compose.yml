@@ -19,28 +19,44 @@ services:
         constraints:
           - node.role == manager
 
-  kanboard:
-    image: kanboard/kanboard:latest
-    volumes:
-      - /mnt/kanboard/data:/var/www/app/data
-      - /mnt/kanboard/plugins:/var/www/app/plugins
-    deploy:
-      labels:
-        - traefik.http.routers.kanboard-router.rule=Host(`192.168.0.231`)
-        - traefik.http.services.kanboard-service.loadbalancer.server.port=80
-        - traefik.http.services.kanboard-service.loadbalancer.sticky.cookie=true
-      replicas: 2
+  nextcloud:
+    image: nextcloud:latest
+    depends_on:
+      - db
     environment:
-      DATABASE_URL: mysql://kanboard:kanboard-secret@db/kanboard
+      - MYSQL_HOST=db:3306
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_ROOT_PASSWORD=nextcloud
+    volumes:
+      - /mnt/nextcloud:/var/www/html:cached
+      - /mnt/nextapps:/var/www/html/custom_apps:cached
+      - /mnt/nextdata:/var/www/html/data:cached
+      - /mnt/nextconfig:/var/www/html/config:cached
+    networks:
+      - proxy
+      - private
+    deploy:
+      placement:
+        constraints: [node.role == worker]
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=proxy"
+        - "traefik.http.routers.nextcloud.rule=Host(`192.168.0.231`)"
+        - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
 
   db:
     image: mariadb:latest
     command: --default-authentication-plugin=mysql_native_password
     environment:
-      MYSQL_ROOT_PASSWORD: secret
-      MYSQL_DATABASE: kanboard
-      MYSQL_USER: kanboard
-      MYSQL_PASSWORD: kanboard-secret
+      MYSQL_ROOT_PASSWORD: nextcloud
+      MYSQL_DATABASE: nextcloud
     volumes:
       - dbdata:/var/lib/mysql
     deploy:
@@ -48,5 +64,19 @@ services:
         - traefik.enable=false
 
 volumes:
+  nextcloud:
+    driver: "local"
+  nextapps:
+    driver: "local"
+  nextdata:
+    driver: "local"
+  nextconfig:
+    driver: "local"
   dbdata:
+
+networks:
+  proxy:
+    external: true
+  private:
+    external: true
       
