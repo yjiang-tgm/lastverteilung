@@ -84,7 +84,52 @@ Um die Compose-Datei anzuwenden, muss man mittels ``docker stack`` diesem Servic
 docker stack deploy --compose-file docker-compose.yml mystack
 ````
 
+##### GlusterFS
 
+Gluster File System wird verwendet, damit Sessions persistieren. 
+
+Installation:
+
+````
+sudo apt install glusterfs-server glusterfs-client
+````
+
+Um die Verbindung mit anderen Nodes zu testen:
+
+````
+sudo gluster peer probe 192.168.0.63
+````
+
+Bricks  (Auf alle Nodes):
+
+````
+sudo mkdir -p /gluster/brick 
+````
+
+Volume erstellen:
+
+````
+sudo gluster volume create swarm-gfs replica 3 transport tcp manager-ip:/gluster/brick node1-ip:/gluster/brick node2-ip:/gluster/brick force
+````
+
+Volume starten:
+
+````
+sudo gluster volume start swarm-gfs
+````
+
+Volume Information:
+
+````
+sudo gluster volume info
+````
+
+Mount:
+
+````
+sudo mount.glusterfs localhost:/swarm-gfs /mnt 
+sudo chown -R yjiang01:docker /mnt
+````
 
 # Quellen
 
